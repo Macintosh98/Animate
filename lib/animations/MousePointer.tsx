@@ -1,0 +1,60 @@
+import { frame, motion, useSpring } from "motion/react";
+import { type RefObject, useEffect, useRef } from "react";
+
+const spring = { damping: 20, stiffness: 5 };
+
+export function useFollowPointer(ref: RefObject<HTMLDivElement | null>) {
+  const x = useSpring(0, spring);
+  const y = useSpring(0, spring);
+
+  useEffect(() => {
+    if (!ref.current) return;
+
+    const handlePointerMove = ({ clientX, clientY }: MouseEvent) => {
+      const element = ref.current;
+      if (element !== null)
+        frame.read(() => {
+          x.set(clientX - element.offsetLeft - element.offsetWidth / 2 - 50);
+          y.set(clientY - element.offsetTop - element.offsetHeight / 2 - 50);
+        });
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+    };
+  }, []);
+
+  return { x, y };
+}
+
+export default function MousePointer() {
+  const ref = useRef<HTMLDivElement>(null);
+  const { x, y } = useFollowPointer(ref);
+
+  const ball = {
+    width: 30,
+    height: 30,
+    zIndex: 9999,
+    backgroundColor: "white",
+    borderRadius: "50%",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24)",
+  };
+  return (
+    <motion.div
+      layout
+      whileInView={{ scale: 1, opacity: 1 }}
+      initial={{ opacity: 0, scale: 0 }}
+      animate={{ opacity: 1, scale: 1 }}
+      // exit={{ opacity: 0, scale: 0 }}
+      transition={{
+        duration: 1,
+        delay: 0.5,
+        ease: [0, 0.71, 0.2, 1.01],
+      }}
+      ref={ref}
+      style={{ ...ball, x, y, position: "absolute" }}
+    />
+  );
+}
